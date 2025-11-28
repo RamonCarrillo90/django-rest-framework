@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-^mus*y_ob7j)p)f#_zmz=^qmhczd%#1+$t=+n=u-%m%6(!!weq
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    'django-rest-framework.onrender.com',  # ← Tu URL de Render
+    'django-rest-framework-uc05.onrender.com',
     'localhost',
     '127.0.0.1',
 ]
