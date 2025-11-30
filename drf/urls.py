@@ -19,5 +19,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('recognition.urls')),
+    path('api/', include('api.urls')),  # ✅ Esta sí existe
+    # path('api/', include('recognition.urls')),  # ❌ COMENTAR O ELIMINAR ESTA LÍNEA
 ]
