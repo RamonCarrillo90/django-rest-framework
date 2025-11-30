@@ -1,50 +1,59 @@
 import numpy as np
 import tensorflow as tf
 import pickle
-from pathlib import Path
-from .sequence_buffer import get_sequence
+import os
 
-BASE = Path(__file__).resolve().parent.parent
-
-MODEL_PATH = BASE / "ml/modelo_gestos.keras"
-ENCODER_PATH = BASE / "ml/label_encoder.pkl"
-NORM_PATH = BASE / "ml/normalizacion.pkl"
-META_PATH = BASE / "ml/metadata.pkl"
-
-model = tf.keras.models.load_model(MODEL_PATH)
-
-with open(ENCODER_PATH, "rb") as f:
-    encoder = pickle.load(f)
-
-with open(NORM_PATH, "rb") as f:
-    norm = pickle.load(f)
-
-with open(META_PATH, "rb") as f:
-    metadata = pickle.load(f)
-
-global_mean = norm["mean"]
-global_std = norm["std"]
-num_features = norm["num_features"]
-classes = metadata["classes"]
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "ml", "modelo.tflite")
+LABEL_ENCODER_PATH = os.path.join(BASE_DIR, "ml", "label_encoder.pkl")
+NORMALIZER_PATH = os.path.join(BASE_DIR, "ml", "normalizacion_sin_patron.pkl")
 
 
-def predecir_desde_landmarks():
-    seq = get_sequence()
-    if seq is None:
-        return None  # aún no hay 65 frames
+class GesturePredictor:
 
-    X = np.array(seq)
-    X = (X - global_mean) / global_std
-    X = X.reshape(1, 65, num_features)
+    def __init__(self):
+        # Load TFLite model
+        self.interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
+        self.interpreter.allocate_tensors()
 
-    pred = model.predict(X, verbose=0)[0]
-    top = np.argmax(pred)
+        # Input / output details
+        self.input_details = self.interpreter.get_input_details()
+        self.output_details = self.interpreter.get_output_details()
 
-    return {
-        "gesto": encoder.inverse_transform([top])[0],
-        "confianza": float(pred[top]),
-        "top_3": [
-            {"gesto": classes[i], "prob": float(pred[i])}
-            for i in np.argsort(pred)[-3:][::-1]
-        ]
-    }
+        # Load label encoder
+        with open(LABEL_ENCODER_PATH, "rb") as f:
+            self.label_encoder = pickle.load(f)
+
+        # Load normalizer
+        with open(NORMALIZER_PATH, "rb") as f:
+            self.normalizer = pickle.load(f)
+
+    def predict(self, sequence_65_frames):
+        """
+        sequence_65_frames = lista de 65 frames
+        Cada frame debe ser un vector del mismo tamaño que usaste en training.
+        """
+
+        seq = np.array(sequence_65_frames, dtype=np.float32)
+
+        # Normalizar
+        seq_norm = self.normalizer.transform(seq.reshape(65, -1))
+
+        # Expandir a batch de 1
+        input_data = np.expand_dims(seq_norm, axis=0).astype(np.float32)
+
+        # Pass input to interpreter
+        self.interpreter.set_tensor(self.input_details[0]["index"], input_data)
+        self.interpreter.invoke()
+
+        # Output
+        output_data = self.interpreter.get_tensor(self.output_details[0]["index"])
+        pred_index = np.argmax(output_data)
+
+        # Convert to label name
+        pred_label = self.label_encoder.inverse_transform([pred_index])[0]
+
+        return {
+            "prediction": pred_label,
+            "confidence": float(np.max(output_data))
+        }

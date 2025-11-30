@@ -25,11 +25,7 @@ SECRET_KEY = 'django-insecure-^mus*y_ob7j)p)f#_zmz=^qmhczd%#1+$t=+n=u-%m%6(!!weq
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [
-    'django-rest-framework-uc05.onrender.com',
-    'localhost',
-    '127.0.0.1',
-]
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -42,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'rest_framework',
+    'recognition',
     'api'
 ]
 
@@ -159,3 +157,9 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+    ]
+}

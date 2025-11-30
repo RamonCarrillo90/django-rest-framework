@@ -1,9 +1,7 @@
 from django.urls import path
-from .views import GesturePredictView
-from django.urls import path
-from .views import GesturePredictView, health_check
+from .views import PredictGesture
 
 urlpatterns = [
-    path('predict/', GesturePredictView.as_view(), name='predict'),
-    path('health/', health_check, name='health'),
+    path('predict/', PredictGesture.as_view()),
 ]
+
