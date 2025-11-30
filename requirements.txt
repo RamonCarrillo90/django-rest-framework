@@ -9,3 +9,4 @@ mediapipe==0.10.14
 # Producción
 gunicorn
 django-cors-headers == 4.3.1
+whitenoise==6.6.0
