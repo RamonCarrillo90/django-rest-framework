@@ -8,3 +8,4 @@ mediapipe==0.10.14
 
 # Producción
 gunicorn
+django-cors-headers
