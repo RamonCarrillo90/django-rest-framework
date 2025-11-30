@@ -4,6 +4,20 @@ from rest_framework import status
 from .services.sequence_buffer import add_landmarks, get_buffer_size
 from .services.predictor import predecir_desde_landmarks
 from .services.mediapipe_extractor import get_mediapipe_extractor
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+@api_view(['GET', 'POST'])
+def health_check(request):
+    """Endpoint de prueba"""
+    return Response({
+        'status': 'ok',
+        'message': 'Servidor funcionando',
+        'method': request.method
+    })
+
+
+
 
 class GesturePredictView(APIView):
     def post(self, request):
