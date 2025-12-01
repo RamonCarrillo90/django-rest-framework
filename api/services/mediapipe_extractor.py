@@ -7,47 +7,42 @@ import base64
 
 class MediaPipeExtractor:
     def __init__(self):
-        self.mpHolistic = mp.solutions.holistic
-        self.holistic = self.mpHolistic.Holistic(
-            static_image_mode=False,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        )
+        try:
+            self.mpHolistic = mp.solutions.holistic
+            self.holistic = self.mpHolistic.Holistic(
+                static_image_mode=True,
+                model_complexity=0,
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5
+            )
+            print("✅ MediaPipe inicializado")
+        except Exception as e:
+            print(f"❌ Error inicializando MediaPipe: {e}")
+            raise
     
     def extract_keypoints_from_base64(self, image_base64: str):
-        """
-        Extrae 81 keypoints (243 valores) desde una imagen en base64
-        Retorna una lista plana de 243 valores [x,y,z,x,y,z,...]
-        """
         try:
             # Decodificar imagen
             image_bytes = base64.b64decode(image_base64)
             image = Image.open(io.BytesIO(image_bytes))
             
+            # Redimensionar para mejor rendimiento
+            image.thumbnail((640, 640), Image.Resampling.LANCZOS)
+            
             # Convertir a numpy array
             img_array = np.array(image)
             
             # Asegurarse de que es RGB
-            if len(img_array.shape) == 2:  # Escala de grises
+            if len(img_array.shape) == 2:
                 img_array = cv2.cvtColor(img_array, cv2.COLOR_GRAY2RGB)
-            elif img_array.shape[2] == 4:  # RGBA
+            elif img_array.shape[2] == 4:
                 img_array = cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB)
             
-            # Procesar con MediaPipe (espera RGB)
+            # Procesar con MediaPipe
             results = self.holistic.process(img_array)
             
             # Extraer keypoints
             keypoints = self._extract_keypoints(results)
-            
-            # Información de debug
-            non_zero = sum(1 for i in range(0, len(keypoints), 3) 
-                          if not all(keypoints[i:i+3] == [0.0, 0.0, 0.0]))
-            
-            print(f"✅ MediaPipe extrajo {non_zero}/81 puntos detectados")
-            print(f"   Pose: {results.pose_landmarks is not None}")
-            print(f"   Cara: {results.face_landmarks is not None}")
-            print(f"   Mano izq: {results.left_hand_landmarks is not None}")
-            print(f"   Mano der: {results.right_hand_landmarks is not None}")
             
             return keypoints
             
@@ -58,25 +53,16 @@ class MediaPipeExtractor:
             return None
     
     def _extract_keypoints(self, results):
-        """
-        Extrae exactamente 81 keypoints:
-        - 33 puntos de pose (99 valores)
-        - 6 puntos de cara (18 valores)
-        - 21 puntos de mano izquierda (63 valores)
-        - 21 puntos de mano derecha (63 valores)
-        Total: 243 valores
-        """
         keypoints = []
         
-        # 1. Pose: 33 puntos × 3 = 99 valores
+        # Pose: 33 puntos × 3 = 99 valores
         if results.pose_landmarks:
             for lm in results.pose_landmarks.landmark:
                 keypoints.extend([lm.x, lm.y, lm.z])
         else:
             keypoints.extend([0.0] * 99)
         
-        # 2. Cara: 6 puntos específicos × 3 = 18 valores
-        # Índices de MediaPipe Face Mesh: [1, 33, 263, 61, 291, 199]
+        # Cara: 6 puntos × 3 = 18 valores
         if results.face_landmarks:
             face_indices = [1, 33, 263, 61, 291, 199]
             for idx in face_indices:
@@ -85,27 +71,27 @@ class MediaPipeExtractor:
         else:
             keypoints.extend([0.0] * 18)
         
-        # 3. Mano izquierda: 21 puntos × 3 = 63 valores
+        # Mano izquierda: 21 puntos × 3 = 63 valores
         if results.left_hand_landmarks:
             for lm in results.left_hand_landmarks.landmark:
                 keypoints.extend([lm.x, lm.y, lm.z])
         else:
             keypoints.extend([0.0] * 63)
         
-        # 4. Mano derecha: 21 puntos × 3 = 63 valores
+        # Mano derecha: 21 puntos × 3 = 63 valores
         if results.right_hand_landmarks:
             for lm in results.right_hand_landmarks.landmark:
                 keypoints.extend([lm.x, lm.y, lm.z])
         else:
             keypoints.extend([0.0] * 63)
         
-        return keypoints  # Total: 243 valores
+        return keypoints
     
     def close(self):
         if hasattr(self, 'holistic'):
             self.holistic.close()
 
-# Instancia global para reutilizar
+# Instancia global
 _extractor = None
 
 def get_mediapipe_extractor():

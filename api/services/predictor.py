@@ -1,5 +1,5 @@
 import numpy as np
-import tensorflow as tf
+import tflite_runtime.interpreter as tflite  # ✅ Cambiar esta línea
 import pickle
 import os
 
@@ -12,8 +12,8 @@ NORMALIZER_PATH = os.path.join(BASE_DIR, "ml", "normalizacion_sin_patron.pkl")
 class GesturePredictor:
 
     def __init__(self):
-        # Load TFLite model
-        self.interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
+        # ✅ Usar tflite.Interpreter en lugar de tf.lite.Interpreter
+        self.interpreter = tflite.Interpreter(model_path=MODEL_PATH)
         self.interpreter.allocate_tensors()
 
         # Input / output details
