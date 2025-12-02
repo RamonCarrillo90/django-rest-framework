@@ -11,6 +11,7 @@ __pycache__/
 
 # Django
 *.log
+django_api.log
 db.sqlite3
 db.sqlite3-journal
 /media
@@ -20,10 +21,14 @@ db.sqlite3-journal
 *.h5
 *.pkl
 *.pth
+*.tflite
+*.model
 
 # Configuración local
 .env
 *.env
+.env.local
+local_settings.py
 
 # IDE
 .vscode/
