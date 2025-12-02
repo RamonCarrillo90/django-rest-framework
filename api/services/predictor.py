@@ -26,7 +26,8 @@ class GesturePredictor:
         self.use_tflite = False
 
         try:
-            # Intentar cargar modelo TFLite primero
+            # PRODUCCIÓN: Solo usar TFLite (liviano, ~200MB RAM)
+            # NOTA: TensorFlow completo requiere ~2GB RAM y no funciona en Render Free Tier
             if os.path.exists(MODEL_TFLITE):
                 logger.info(f"Cargando modelo TFLite desde {MODEL_TFLITE}")
                 import tflite_runtime.interpreter as tflite
@@ -36,18 +37,36 @@ class GesturePredictor:
                 self.output_details = self.interpreter.get_output_details()
                 self.use_tflite = True
                 logger.info("✅ Modelo TFLite cargado exitosamente")
+                logger.info(f"   Input shape: {self.input_details[0]['shape']}")
+                logger.info(f"   Output shape: {self.output_details[0]['shape']}")
 
-            # Si no existe .tflite, usar .keras
+            # DESARROLLO: Fallback a Keras solo si TFLite no existe
+            # ADVERTENCIA: Esto NO funcionará en Render Free Tier (512MB RAM)
             elif os.path.exists(MODEL_KERAS):
-                logger.info(f"Modelo TFLite no encontrado, cargando Keras desde {MODEL_KERAS}")
-                import tensorflow as tf
-                self.model = tf.keras.models.load_model(MODEL_KERAS)
-                self.use_tflite = False
-                logger.info("✅ Modelo Keras cargado exitosamente")
+                logger.warning(f"⚠️  ADVERTENCIA: Usando modelo Keras (requiere ~2GB RAM)")
+                logger.warning(f"⚠️  Esto NO funcionará en Render Free Tier (512MB)")
+                logger.warning(f"⚠️  Ejecuta 'python convert_to_tflite.py' para crear modelo.tflite")
+
+                try:
+                    import tensorflow as tf
+                    self.model = tf.keras.models.load_model(MODEL_KERAS)
+                    self.use_tflite = False
+                    logger.info("✅ Modelo Keras cargado (solo para desarrollo local)")
+                except ImportError:
+                    raise ImportError(
+                        "TensorFlow no está instalado y modelo.tflite no existe.\n"
+                        "Para producción: Ejecuta 'python convert_to_tflite.py'\n"
+                        "Para desarrollo: Instala con 'pip install -r requirements-dev.txt'"
+                    )
 
             else:
                 raise FileNotFoundError(
-                    f"No se encontró modelo en {MODEL_TFLITE} ni en {MODEL_KERAS}"
+                    f"❌ No se encontró modelo en {MODEL_TFLITE} ni en {MODEL_KERAS}\n\n"
+                    f"SOLUCIÓN:\n"
+                    f"1. Asegúrate de que existe: api/ml/best_model_sin_patron_ceros.keras\n"
+                    f"2. Ejecuta: python convert_to_tflite.py\n"
+                    f"3. Verifica que se creó: api/ml/modelo.tflite\n"
+                    f"4. Haz commit: git add api/ml/modelo.tflite\n"
                 )
 
             # Load label encoder

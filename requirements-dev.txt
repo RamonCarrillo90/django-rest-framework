@@ -1,6 +1,5 @@
-# Requirements para PRODUCCIÓN (Render Free Tier - 512MB RAM)
-# ⚠️ NO incluye TensorFlow (demasiado pesado)
-# ⚠️ Usa tflite-runtime en su lugar (mucho más liviano)
+# Requirements para DESARROLLO LOCAL
+# Este archivo incluye TensorFlow completo para poder convertir modelos
 
 Django==5.0
 djangorestframework==3.16.0
@@ -9,6 +8,7 @@ gunicorn==23.0.0
 whitenoise==6.6.0
 Pillow==10.1.0
 numpy==1.24.3
+tensorflow==2.15.0
 scikit-learn==1.3.2
 tflite-runtime==2.14.0
 mediapipe==0.10.14
