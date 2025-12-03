@@ -96,8 +96,18 @@ class GesturePredictor:
             seq = np.array(sequence_65_frames, dtype=np.float32)
             logger.info(f"Shape antes de normalizar: {seq.shape}")
 
-            # Normalizar
-            seq_norm = self.normalizer.transform(seq.reshape(65, -1))
+            # Normalizar manualmente usando mean y std
+            if isinstance(self.normalizer, dict):
+                # El normalizer es un diccionario con 'mean' y 'std'
+                mean = self.normalizer['mean']
+                std = self.normalizer['std']
+                seq_reshaped = seq.reshape(65, -1)
+                seq_norm = (seq_reshaped - mean) / std
+                logger.info(f"Normalización manual con mean={mean:.4f}, std={std:.4f}")
+            else:
+                # Fallback: usar .transform() si es un objeto sklearn
+                seq_norm = self.normalizer.transform(seq.reshape(65, -1))
+
             logger.info(f"Shape después de normalizar: {seq_norm.shape}")
 
             # Expandir a batch de 1
