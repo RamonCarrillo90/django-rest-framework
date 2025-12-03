@@ -112,14 +112,28 @@ class GesturePredictor:
 
             # Expandir a batch de 1
             input_data = np.expand_dims(seq_norm, axis=0).astype(np.float32)
-            logger.info(f"Shape input final: {input_data.shape}")
+            logger.info(f"Shape input antes de ajustar batch: {input_data.shape}")
 
             # Predecir según el tipo de modelo
             if self.use_tflite:
-                # TFLite
+                # TFLite: Verificar batch size esperado
+                expected_batch_size = self.input_details[0]['shape'][0]
+
+                if expected_batch_size > 1 and input_data.shape[0] == 1:
+                    # El modelo espera un batch size fijo mayor que 1
+                    # Repetir la secuencia para llenar el batch
+                    logger.warning(f"⚠️  Modelo espera batch_size={expected_batch_size}, ajustando...")
+                    input_data = np.repeat(input_data, expected_batch_size, axis=0)
+                    logger.info(f"Shape input después de ajustar batch: {input_data.shape}")
+
                 self.interpreter.set_tensor(self.input_details[0]["index"], input_data)
                 self.interpreter.invoke()
                 output_data = self.interpreter.get_tensor(self.output_details[0]["index"])
+
+                # Si repetimos la secuencia, tomar solo la primera predicción
+                if expected_batch_size > 1:
+                    output_data = output_data[0:1]
+                    logger.info(f"Tomando primera predicción del batch: {output_data.shape}")
             else:
                 # Keras
                 output_data = self.model.predict(input_data, verbose=0)
